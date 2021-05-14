@@ -1,3 +1,3 @@
-module github.com/daotl/gut
+module github.com/daotl/guts
 
 go 1.16

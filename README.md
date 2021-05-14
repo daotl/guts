@@ -1,4 +1,4 @@
-# gut - Go utility library
+# GUTS - Go UTilitieS
 
 ## [sync.Mutex and sync.RWMutex](./sync/mutex.go)
 
