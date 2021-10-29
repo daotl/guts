@@ -1,3 +1,8 @@
+// Copyright (c) Tendermint. All rights reserved.
+// Use of this source code is governed by Apache License 2.0 that can be
+// found in the LICENSE_APACHE_2.0 file.
+
+//go:build !deadlock
 // +build !deadlock
 
 package sync
