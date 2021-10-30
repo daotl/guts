@@ -8,7 +8,13 @@
 - ProtocolAndAddress
 - GetFreePort
 
-## [sync.Mutex and sync.RWMutex](./sync/mutex.go)
+## [service](./service)
+
+Package [service/goprocesssrv](./service/goprocess/service.go) is a service implementation base on 
+[goprocess](https://github.com/jbenet/goprocess)
+that supports declaring and ensuring runtime dependencies between services. 
+
+## [sync/mutex](./sync/mutex.go)
 
 Use `sync.Mutex` and `sync.RWMutex` from this package instead of `sync` so you can build your 
 program with `deadlock` flag to detect deadlocks using [go-deadklock](https://github.com/sasha-s/go-deadlock).
