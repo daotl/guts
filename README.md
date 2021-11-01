@@ -8,6 +8,10 @@
 - ProtocolAndAddress
 - GetFreePort
 
+## [rand](./rand)
+
+Random number, string, bytes generation. 
+
 ## [service](./service)
 
 Package [service/goprocesssrv](./service/goprocess/service.go) is a service implementation based on
