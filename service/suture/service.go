@@ -98,7 +98,7 @@ func NewBaseService(runFn RunFunc, logger log.StandardLogger,
 		return nil, ErrRunFnMustBeSpecified
 	}
 	if logger == nil {
-		logger = zap.NewNop().Sugar()
+		logger = log.NopLogger()
 	}
 
 	return &BaseService{

@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/jbenet/goprocess"
-	"go.uber.org/zap"
 
 	"github.com/daotl/go-log/v2"
 )
@@ -64,7 +63,7 @@ func NewBaseService(runFn goprocess.ProcessFunc, stopFn goprocess.TeardownFunc,
 		return nil, ErrRunFnMustBeSpecified
 	}
 	if logger == nil {
-		logger = zap.NewNop().Sugar()
+		logger = log.NopLogger()
 	}
 
 	return &BaseService{
