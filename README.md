@@ -26,3 +26,9 @@ Package [service/suturesrv](./service/suture/service.go) is a service implementa
 Use `sync.Mutex` and `sync.RWMutex` from this package instead of `sync` so you can build your
 program with `deadlock` flag to detect deadlocks
 using [go-deadklock](https://github.com/sasha-s/go-deadlock).
+
+## [sync.ResultNotifier](./sync/result_notifier.go)
+
+ResultNotifier can be used for a goroutine to notify others that a job is done
+and pass the error occurred or nil if no error.
+It's based on `sync.Cond`.
