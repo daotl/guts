@@ -11,7 +11,11 @@ import (
 	gsync "github.com/daotl/guts/sync"
 )
 
-var closedchan = make(chan struct{})
+var (
+	ErrStoppedBeforeReady = errors.New("stopped before ready")
+)
+
+var closedchan = make(chan error)
 
 func init() {
 	close(closedchan)
@@ -29,9 +33,9 @@ type Status uint8
 const (
 	// Not started or stopped
 	StatusStopped Status = iota
-	// Running but not yet ready to serve
-	StatusRunning
-	// Running and ready to serve
+	// Started but not yet ready to serve
+	StatusStarted
+	// Started and ready to serve
 	StatusReady
 	// Stopping
 	StatusStopping
@@ -42,16 +46,16 @@ Service is a Suture-based service interface.
 
 Service's lifecycle graph:
                                 Serve()
-                 StatusStopped ─────────► StatusRunning
-                 │                                 │ │
-runFn() returned │ ┌───────────────────────────────┘ │ ready() called in RunFunc
-                 │ ▼  Stop() or context canceled     ▼
-                 StatusStopping ◄───────── StatusReady
+                StatusStopped ─────────► StatusStarted
+                 │                                │ │
+runFn() returned │ ┌──────────────────────────────┘ │ ready() called in runFn()
+                 │ ▼  Stop() or context canceled    ▼
+                StatusStopping ◄───────── StatusReady
 */
 type Service interface {
 	suture.Service
 
-	// Serve is called by a Supervisor to start the service.
+	// Serve is called by a suture.Supervisor to start the service.
 	// Returns ErrAlreadyRunning if it's already running.
 	// See: https://pkg.go.dev/github.com/thejerf/suture/v4#hdr-Serve_Method
 	Serve(ctx context.Context) error
@@ -59,21 +63,24 @@ type Service interface {
 	// Status returns the status of the service.
 	Status() Status
 
-	// Ready returns a channel to notify that the service is ready to serve.
-	// Note that the service may be stopped and restarted before the returned channel is closed.
-	Ready() chan struct{}
+	// Ready returns a channel to notify that the service is ready or failed to start and the error occurred.
+	// If the service stops before `ready` is called, the returned channel will send ErrStoppedBeforeReady.
+	Ready() chan error
 
 	// Stop the service if it's running, wait on the returned channel for stopping to finish.
 	// Returns ErrNotRunning if it's not running.
 	Stop() (chan struct{}, error)
 }
 
-// RunFunc is called when service is started either by a Supervisor or manually by calling Service.Serve.
+// RunFunc is called when Service.Serve is called either by a suture.Supervisor or manually.
+//
+// A RunFunc should call `ready` with nil when the service is ready or failed to start with the error occurred.
+// If the service stops before `ready` is called, Service.Ready will return a channel that sends ErrStoppedBeforeReady.
+//
 // The service should execute within the goroutine that this is called in, that is, it should not spawn a
 // "worker" goroutine. If this function either returns error or panics, the Supervisor will call it again.
 // `ready` should be called when the service is ready to serve.
-// Note that a service may stop before it's ready.
-type RunFunc = func(ctx context.Context, ready func()) error
+type RunFunc = func(ctx context.Context, ready func(err error)) error
 
 // BaseService is the base implementation of a Service which can be embedded in actual services.
 type BaseService struct {
@@ -82,7 +89,7 @@ type BaseService struct {
 	cancel  context.CancelFunc
 	mtx     gsync.Mutex
 	status  Status
-	ready   chan struct{}
+	result  *gsync.ResultNotifier
 	stopped chan struct{}
 
 	// runFn will run when the service is started.
@@ -104,7 +111,7 @@ func NewBaseService(runFn RunFunc, logger log.StandardLogger,
 	return &BaseService{
 		Logger: logger,
 		runFn:  runFn,
-		ready:  make(chan struct{}),
+		result: gsync.NewResultNotifier(nil),
 	}, nil
 }
 
@@ -121,11 +128,7 @@ func (s *BaseService) Serve(ctx context.Context) error {
 			s.mtx.Unlock()
 			return ErrAlreadyRunning
 		}
-		s.status = StatusRunning
-		// Don't s.ready here.
-		// Reset s.ready when and only when the service become ready, so that the waiting goroutines
-		// can continue waiting on the same channel until it's ready even the service restarts.
-		//s.ready = make(chan struct{})
+		s.status = StatusStarted
 		s.stopped = make(chan struct{})
 		ctx, s.cancel = context.WithCancel(ctx)
 	}
@@ -135,28 +138,29 @@ func (s *BaseService) Serve(ctx context.Context) error {
 		<-ctx.Done()
 		s.mtx.Lock()
 		defer s.mtx.Unlock()
-		if s.status == StatusRunning || s.status == StatusReady {
+		if s.status == StatusStarted || s.status == StatusReady {
 			s.status = StatusStopping
 		}
 	}()
 
 	s.Logger.Debug("Service started running")
 	defer s.Logger.Debug("Service stopped")
-	err := s.runFn(ctx, func() {
+	err := s.runFn(ctx, func(err error) {
 		s.mtx.Lock()
 		defer s.mtx.Unlock()
-		if s.status == StatusRunning {
+		if s.status == StatusStarted {
 			s.status = StatusReady
-			close(s.ready)
-			// Reset s.ready when and only when the service become ready, so that the waiting goroutines
-			// can continue waiting on the same channel until it's ready even the service restarts.
-			s.ready = make(chan struct{})
+			s.result.Finish(err)
 		}
 	})
 
 	s.mtx.Lock()
 	{
+		if s.status != StatusReady {
+			s.result.Finish(ErrStoppedBeforeReady)
+		}
 		s.status = StatusStopped
+		s.result = gsync.NewResultNotifier(nil)
 		close(s.stopped)
 	}
 	s.mtx.Unlock()
@@ -164,14 +168,10 @@ func (s *BaseService) Serve(ctx context.Context) error {
 	return err
 }
 
-func (s *BaseService) Ready() chan struct{} {
+func (s *BaseService) Ready() chan error {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
-	// s.ready is reset when the service become ready, so we have to return a closed channel here
-	if s.status == StatusReady {
-		return closedchan
-	}
-	return s.ready
+	return s.result.Done()
 }
 
 func (s *BaseService) Stop() (chan struct{}, error) {
