@@ -73,7 +73,13 @@ type Service interface {
 
 	// Start can conveniently start the Service in a new goroutine without using a suture.Supervisor.
 	// Return a ReadyChan the same as Ready, and a channel that sends the result of `Service.Serve`.
-	// Useful for writing tests for Service for example.
+	//
+	// Useful for writing tests for Service for example:
+	// ```go
+	// readyCh, resultCh := s.Start(context.Background())
+	// require.NoError(t, <-readyCh)
+	// defer require.NoError(t, <-resultCh)
+	// ```
 	Start(ctx context.Context) (ReadyChan, chan error)
 
 	// Stop the Service manually if it's running by cancelling it's context , you can wait on the
