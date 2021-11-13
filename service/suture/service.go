@@ -30,6 +30,10 @@ var (
 // Status of a Service
 type Status uint8
 
+// ReadyChan notifies that the Service is ready or failed to start and the error occurred.
+// If the Service stops before `ready` is called, ReadyChan will send ErrStoppedBeforeReady.
+type ReadyChan chan error
+
 const (
 	// Not started or stopped
 	StatusStopped Status = iota
@@ -55,31 +59,36 @@ runFn() returned │ ┌──────────────────�
 type Service interface {
 	suture.Service
 
-	// Serve is called by a suture.Supervisor to start the service.
+	// Serve is called by a suture.Supervisor to start the Service.
 	// Returns ErrAlreadyRunning if it's already running.
 	// See: https://pkg.go.dev/github.com/thejerf/suture/v4#hdr-Serve_Method
-	Serve(ctx context.Context) error
+	//Serve(ctx context.Context) error
 
-	// Status returns the status of the service.
+	// Status returns the status of the Service.
 	Status() Status
 
-	// Ready returns a channel to notify that the service is ready or failed to start and the error occurred.
-	// If the service stops before `ready` is called, the returned channel will send ErrStoppedBeforeReady.
-	Ready() chan error
+	// Ready returns a ReadyChan to notify that the Service is ready or failed to start and the error occurred.
+	// If the Service stops before `ready` is called, ReadyChan will send ErrStoppedBeforeReady.
+	Ready() ReadyChan
 
-	// Stop the service if it's running, wait on the returned channel for stopping to finish.
-	// Returns ErrNotRunning if it's not running.
+	// Start can conveniently start the Service in a new goroutine without using a suture.Supervisor.
+	// Return a ReadyChan the same as Ready, and a channel that sends the result of `Service.Serve`.
+	// Useful for writing tests for Service for example.
+	Start(ctx context.Context) (ReadyChan, chan error)
+
+	// Stop the Service manually if it's running by cancelling it's context , you can wait on the
+	// returned channel for stopping to finish. Returns ErrNotRunning if it's not running.
 	Stop() (chan struct{}, error)
 }
 
 // RunFunc is called when Service.Serve is called either by a suture.Supervisor or manually.
 //
-// A RunFunc should call `ready` with nil when the service is ready or failed to start with the error occurred.
-// If the service stops before `ready` is called, Service.Ready will return a channel that sends ErrStoppedBeforeReady.
+// A RunFunc should call `ready` with nil when the Service is ready or failed to start with the error occurred.
+// If the Service stops before `ready` is called, Service.Ready will return a channel that sends ErrStoppedBeforeReady.
 //
-// The service should execute within the goroutine that this is called in, that is, it should not spawn a
+// The Service should execute within the goroutine that this is called in, that is, it should not spawn a
 // "worker" goroutine. If this function either returns error or panics, the Supervisor will call it again.
-// `ready` should be called when the service is ready to serve.
+// `ready` should be called when the Service is ready to serve.
 type RunFunc = func(ctx context.Context, ready func(err error)) error
 
 // BaseService is the base implementation of a Service which can be embedded in actual services.
@@ -92,7 +101,7 @@ type BaseService struct {
 	result  *gsync.ResultNotifier
 	stopped chan struct{}
 
-	// runFn will run when the service is started.
+	// runFn will run when the Service is started.
 	runFn RunFunc
 }
 
@@ -168,10 +177,18 @@ func (s *BaseService) Serve(ctx context.Context) error {
 	return err
 }
 
-func (s *BaseService) Ready() chan error {
+func (s *BaseService) Ready() ReadyChan {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 	return s.result.Done()
+}
+
+func (s *BaseService) Start(ctx context.Context) (ReadyChan, chan error) {
+	ch := make(chan error, 1)
+	go func() {
+		ch <- s.Serve(ctx)
+	}()
+	return s.Ready(), ch
 }
 
 func (s *BaseService) Stop() (chan struct{}, error) {
