@@ -249,3 +249,19 @@ func NewBaseSupervisor(logger log.StandardLogger,
 		Logger: logger,
 	}, nil
 }
+
+// WaitForReady waits for some services to be ready and return an error if any of the service fails
+// to be ready or the context is canceled.
+func WaitForReady(ctx context.Context, srvs ...Service) error {
+	for _, s := range srvs {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case err := <-s.Ready():
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
