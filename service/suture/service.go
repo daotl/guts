@@ -41,6 +41,8 @@ const (
 	StatusStarted
 	// Started and ready to serve
 	StatusReady
+	// Failed to start
+	StatusFailed
 	// Stopping
 	StatusStopping
 )
@@ -54,7 +56,7 @@ Service's lifecycle graph:
                  │                                │ │
 runFn() returned │ ┌──────────────────────────────┘ │ ready() called in runFn()
                  │ ▼  Stop() or context canceled    ▼
-                StatusStopping ◄───────── StatusReady
+                StatusStopping ◄───────- StatusReady/StatusFailed
 */
 type Service interface {
 	suture.Service
@@ -164,18 +166,29 @@ func (s *BaseService) Serve(ctx context.Context) error {
 		s.mtx.Lock()
 		defer s.mtx.Unlock()
 		if s.status == StatusStarted {
-			s.status = StatusReady
 			s.result.Finish(err)
+			if err == nil {
+				s.status = StatusReady
+			} else {
+				s.status = StatusFailed
+				// Reset s.result so new calls to s.Ready() can wait for the service to restart
+				// instead of still getting this `err`
+				s.result = gsync.NewResultNotifier(nil)
+			}
 		}
 	})
 
 	s.mtx.Lock()
 	{
-		if s.status != StatusReady {
+		// `ready` wasn't called in `RunFunc`, unblock the waiters now
+		if !(s.status == StatusReady || s.status == StatusFailed) {
 			s.result.Finish(ErrStoppedBeforeReady)
 		}
+		// Skip because if failed, s.result would be already reset in `ready`
+		if s.status != StatusFailed {
+			s.result = gsync.NewResultNotifier(nil)
+		}
 		s.status = StatusStopped
-		s.result = gsync.NewResultNotifier(nil)
 		close(s.stopped)
 	}
 	s.mtx.Unlock()
@@ -250,18 +263,24 @@ func NewBaseSupervisor(logger log.StandardLogger,
 	}, nil
 }
 
-// WaitForReady waits for some services to be ready and return an error if any of the service fails
-// to be ready or the context is canceled.
-func WaitForReady(ctx context.Context, srvs ...Service) error {
-	for _, s := range srvs {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case err := <-s.Ready():
-			if err != nil {
-				return err
+// AllReady return an error channel which can be waited on for all passed services to be ready and
+// get the error if any of the service fails to be ready or the context is canceled.
+func AllReady(ctx context.Context, srvs ...Service) chan error {
+	ch := make(chan error, 1)
+	go func() {
+		for _, s := range srvs {
+			select {
+			case <-ctx.Done():
+				ch <- ctx.Err()
+				return
+			case err := <-s.Ready():
+				if err != nil {
+					ch <- err
+					return
+				}
 			}
 		}
-	}
-	return nil
+		close(ch)
+	}()
+	return ch
 }
