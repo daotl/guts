@@ -37,6 +37,7 @@ func (r *ResultNotifier) Done() chan error {
 	// Fast path
 	r.c.L.Lock()
 	if r.done && r.err == nil {
+		r.c.L.Unlock()
 		return closedchan
 	}
 	r.c.L.Unlock()
