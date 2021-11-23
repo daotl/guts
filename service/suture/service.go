@@ -264,7 +264,7 @@ func NewBaseSupervisor(logger log.StandardLogger,
 }
 
 // AllReady return an error channel which can be waited on for all passed services to be ready and
-// get the error if any of the service fails to be ready or the context is canceled.
+// get the error if any of the service fails to be ready or the context is done.
 func AllReady(ctx context.Context, srvs ...Service) chan error {
 	ch := make(chan error, 1)
 	go func() {
@@ -283,4 +283,19 @@ func AllReady(ctx context.Context, srvs ...Service) chan error {
 		close(ch)
 	}()
 	return ch
+}
+
+// WaitForAllReady will block and repeatedly try to wait for all passed services to be ready,
+// it will only return `nil` when all services are ready or return an error when `ctx is done.
+func WaitForAllReady(ctx context.Context, srvs ...Service) error {
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case err := <-AllReady(ctx, srvs...):
+			if err == nil {
+				return nil
+			}
+		}
+	}
 }
