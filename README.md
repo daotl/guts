@@ -2,6 +2,11 @@
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/daotl/guts.svg)](https://pkg.go.dev/github.com/daotl/guts)
 
+## [bytes](./bytes)
+
+- Conversions from/to `[]byte` to/from various types.
+- Various bytes operations.
+
 ## [net](./net/net.go)
 
 ### Connect(protoAddr string) (net.Conn, error)
