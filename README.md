@@ -6,6 +6,7 @@
 
 - Conversions from/to `[]byte` to/from various types.
 - Various bytes operations.
+- `HexByte`: `[]byte` alias with `MarshalJSON` and `UnmarshalJSON` methods for hex encoding.
 
 ## [net](./net/net.go)
 
