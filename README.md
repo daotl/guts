@@ -8,6 +8,10 @@
 - Various bytes operations.
 - `HexByte`: `[]byte` alias with `MarshalJSON` and `UnmarshalJSON` methods for hex encoding.
 
+## [error](./error)
+
+Error-related utilities.
+
 ## [net](./net/net.go)
 
 ### Connect(protoAddr string) (net.Conn, error)
