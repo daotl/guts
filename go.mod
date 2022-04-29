@@ -1,6 +1,6 @@
 module github.com/daotl/guts
 
-go 1.17
+go 1.18
 
 require (
 	github.com/daotl/go-log/v2 v2.3.1

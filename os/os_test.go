@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"syscall"
 	"testing"
 	"time"
@@ -50,6 +51,10 @@ func TestCopyFile(t *testing.T) {
 }
 
 func TestTrapSignal(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip()
+	}
+
 	if os.Getenv("TM_TRAP_SIGNAL_TEST") == "1" {
 		t.Log("inside test process")
 		killer()
@@ -110,7 +115,7 @@ func TestEnsureDir(t *testing.T) {
 
 type mockLogger struct{}
 
-func (ml mockLogger) Info(msg string, keyvals ...interface{}) {}
+func (ml mockLogger) Info(args ...any) {}
 
 func killer() {
 	logger := mockLogger{}

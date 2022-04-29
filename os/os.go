@@ -17,7 +17,7 @@ import (
 
 // e.g., `log.StandardLogger` from `github.com/daotl/go-log/v2`
 type logger interface {
-	Info(args ...interface{})
+	Info(args ...any)
 }
 
 // TrapSignal catches SIGTERM and SIGINT, executes the cleanup function,
