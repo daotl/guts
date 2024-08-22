@@ -12,6 +12,18 @@
 
 Error-related utilities.
 
+### [io](./io)
+
+### ReadeFromWriter
+
+*ReaderFromWriter* is a type that wraps an `io.ReaderFrom` and implements `io.Writer` using `io.Pipe`.
+Due to the asynchronous nature of `io.Pipe`, `Write()` will only be guaranteed to be visible after
+a call to `Sync()` or `Close()`.
+
+### WriteToReader
+
+*WriteToReader* is a type that wraps an `io.WriterTo` implementation and implements `io.Reader` using `io.Pipe`.
+
 ### [net](./net/net.go)
 
 #### Connect(protoAddr string) (net.Conn, error)
