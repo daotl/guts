@@ -58,7 +58,8 @@ type BaseService struct {
 
 // NewBaseService creates a new BaseService.
 func NewBaseService(runFn goprocess.ProcessFunc, stopFn goprocess.TeardownFunc,
-	waits []Service, logger log.StandardLogger) (*BaseService, error) {
+	waits []Service, logger log.StandardLogger,
+) (*BaseService, error) {
 	if runFn == nil {
 		return nil, ErrRunFnMustBeSpecified
 	}
@@ -90,7 +91,7 @@ func (s *BaseService) Stop() error {
 }
 
 func (s *BaseService) StartChild(child Service) error {
-	if s.Process == nil {
+	if s.proc == nil {
 		return ErrNotStarted
 	}
 	child.Start(s)
