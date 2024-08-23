@@ -20,9 +20,9 @@ Error-related utilities.
 Due to the asynchronous nature of `io.Pipe`, `Write()` will only be guaranteed to be visible after
 a call to `Sync()` or `Close()`.
 
-### WriteToReader
+### WriterToReader
 
-*WriteToReader* is a type that wraps an `io.WriterTo` implementation and implements `io.Reader` using `io.Pipe`.
+*WriterToReader* is a type that wraps an `io.WriterTo` implementation and implements `io.Reader` using `io.Pipe`.
 
 ### [net](./net/net.go)
 

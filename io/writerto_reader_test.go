@@ -20,20 +20,20 @@ func (ewt *ExampleWriterTo) WriteTo(w io.Writer) (int64, error) {
 	return int64(n), err
 }
 
-// TestWriteToReader tests the WriteToReader implementation.
-func TestWriteToReader(t *testing.T) {
+// TestWriterToReader tests the WriterToReader implementation.
+func TestWriterToReader(t *testing.T) {
 	req := require.New(t)
 	assr := assert.New(t)
 
-	// Tests the WriteToReader implementation with single read.
+	// Tests the WriterToReader implementation with single read.
 	t.Run("Single read", func(t *testing.T) {
 		// Create an instance of ExampleWriterTo with some data.
 		ewt := &ExampleWriterTo{data: TestBin}
 
-		// Create a WriteToReader wrapping the ExampleWriterTo.
-		wtr := NewWriteToReader(ewt)
+		// Create a WriterToReader wrapping the ExampleWriterTo.
+		wtr := NewWriterToReader(ewt)
 
-		// Read data from the WriteToReader and compare it to the expected output.
+		// Read data from the WriterToReader and compare it to the expected output.
 		buf := make([]byte, len(TestStr))
 		n, err := wtr.Read(buf)
 		req.NoError(err)
@@ -41,15 +41,15 @@ func TestWriteToReader(t *testing.T) {
 		assr.Equal(TestStr, string(buf))
 	})
 
-	// Tests the WriteToReader implementation with multiple reads.
+	// Tests the WriterToReader implementation with multiple reads.
 	t.Run("Multiple reads", func(t *testing.T) {
 		// Create an instance of ExampleWriterTo with some data.
 		ewt := &ExampleWriterTo{data: TestBin}
 
-		// Create a WriteToReader wrapping the ExampleWriterTo.
-		wtr := NewWriteToReader(ewt)
+		// Create a WriterToReader wrapping the ExampleWriterTo.
+		wtr := NewWriterToReader(ewt)
 
-		// Read data from the WriteToReader in chunks and compare it to the TestStr output.
+		// Read data from the WriterToReader in chunks and compare it to the TestStr output.
 		var result bytes.Buffer
 		buf := make([]byte, 5)
 		for {
@@ -66,15 +66,15 @@ func TestWriteToReader(t *testing.T) {
 		assr.Equal(TestStr, result.String())
 	})
 
-	// Tests the WriteToReader implementation with an empty writer.
+	// Tests the WriterToReader implementation with an empty writer.
 	t.Run("Empty writer", func(t *testing.T) {
 		// Create an instance of ExampleWriterTo with no data.
 		ewt := &ExampleWriterTo{data: []byte{}}
 
-		// Create a WriteToReader wrapping the ExampleWriterTo.
-		wtr := NewWriteToReader(ewt)
+		// Create a WriterToReader wrapping the ExampleWriterTo.
+		wtr := NewWriterToReader(ewt)
 
-		// Read data from the WriteToReader and compare it to the expected output.
+		// Read data from the WriterToReader and compare it to the expected output.
 		buf := make([]byte, 5)
 		n, err := wtr.Read(buf)
 		req.NoError(err)
