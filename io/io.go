@@ -8,11 +8,10 @@ type ReadFromWriter = interface {
 	io.Writer
 }
 
-// ReadFromWriter is the interface that groups the basic ReadFrom, Write and Close methods.
+// ReadFromWriteCloser is the interface that groups the basic ReadFrom, Write and Close methods.
 type ReadFromWriteCloser = interface {
 	io.ReaderFrom
-	io.Writer
-	io.Closer
+	io.WriteCloser
 }
 
 // WriteToReader is the interface that groups the basic WriteTo and Read methods.
@@ -21,9 +20,15 @@ type WriteToReader = interface {
 	io.Reader
 }
 
-// WriteToReader is the interface that groups the basic WriteTo, Read and Close methods.
+// WriteToReadCloser is the interface that groups the basic WriteTo, Read and Close methods.
 type WriteToReadCloser = interface {
 	io.WriterTo
-	io.Reader
-	io.Closer
+	io.ReadCloser
+}
+
+// ReadFromWriteToReadWriteCloser is the interface that groups the basic WriteTo, ReadFrom, Read, Write and Close methods.
+type ReadFromWriteToReadWriteCloser = interface {
+	io.ReaderFrom
+	io.WriterTo
+	io.ReadWriteCloser
 }

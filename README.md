@@ -20,7 +20,7 @@ Error-related utilities.
 
 ### ReadFromWriteCloser
 
-*ReadFromWriter* is the interface that groups the basic `ReadFrom`, `Write` and `Close` methods.
+*ReadFromWriteCloser* is the interface that groups the basic `ReadFrom`, `Write` and `Close` methods.
 
 ### WriteToReader
 
@@ -28,7 +28,7 @@ Error-related utilities.
 
 ### WriteToReadCloser
 
-*WriteToReader* is the interface that groups the basic `WriteTo`, `Read` and `Close` methods.
+*WriteToReadCloser* is the interface that groups the basic `WriteTo`, `Read` and `Close` methods.
 
 ### ReaderFromWriter
 
@@ -39,6 +39,17 @@ a call to `Sync()` or `Close()`.
 ### WriterToReader
 
 *WriterToReader* is a type that wraps an `io.WriterTo` implementation and implements `WriteToReadCloser` using `io.Pipe`.
+
+### ReadFromWriteToReadWriteCloser
+
+*ReadFromWriteToReadWriteCloser* is the interface that groups the basic `WriteTo`, `ReadFrom`, `Read`, `Write` and `Close` methods.
+
+### ReaderFromWriteToReadWriteCloser
+
+*ReaderFromWriteToReadWriteCloser* is a type that wraps an `io.ReaderFrom` and a `io.WriterTo`, and
+implements `io.ReadWriteCloser`, `ReadFromWriteCloser` and `WriteToReadCloser` using `io.Pipe`.
+Due to the asynchronous nature of `io.Pipe`, `Write()` will only be guaranteed to be visible after
+a call to `Sync()` or `Close()`.
 
 ### [net](./net/net.go)
 
