@@ -135,7 +135,10 @@ func killer() {
 	time.Sleep(1 * time.Second)
 }
 
-func newTestProgram(t *testing.T, environVar string) (cmd *exec.Cmd, stdout *bytes.Buffer, stderr *bytes.Buffer) {
+func newTestProgram(
+	t *testing.T,
+	environVar string,
+) (cmd *exec.Cmd, stdout *bytes.Buffer, stderr *bytes.Buffer) {
 	t.Helper()
 
 	cmd = exec.Command(os.Args[0], "-test.run="+t.Name())
@@ -169,7 +172,11 @@ func TestTrickedTruncation(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !bytes.Equal(readWAL, originalWALContent) {
-		t.Fatalf("Cannot proceed as the content does not match\nGot:  %q\nWant: %q", readWAL, originalWALContent)
+		t.Fatalf(
+			"Cannot proceed as the content does not match\nGot:  %q\nWant: %q",
+			readWAL,
+			originalWALContent,
+		)
 	}
 
 	// 2. Now cause the truncation of the original file.
@@ -184,6 +191,10 @@ func TestTrickedTruncation(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !bytes.Equal(reReadWAL, originalWALContent) {
-		t.Fatalf("Oops, the WAL's content was changed :(\nGot:  %q\nWant: %q", reReadWAL, originalWALContent)
+		t.Fatalf(
+			"Oops, the WAL's content was changed :(\nGot:  %q\nWant: %q",
+			reReadWAL,
+			originalWALContent,
+		)
 	}
 }
