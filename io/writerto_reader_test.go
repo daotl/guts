@@ -1,27 +1,19 @@
-package io
+package io_test
 
 import (
 	"bytes"
 	"io"
 	"testing"
 
+	gio "github.com/daotl/guts/io"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-// ExampleWriterTo is an example type that implements io.WriterTo.
-type ExampleWriterTo struct {
-	data []byte
-}
-
-// WriteTo writes data to the provided io.Writer.
-func (ewt *ExampleWriterTo) WriteTo(w io.Writer) (int64, error) {
-	n, err := w.Write(ewt.data)
-	return int64(n), err
-}
-
-// TestWriterToReader tests the WriterToReader implementation.
-func TestWriterToReader(t *testing.T) {
+func testWriterToReader(
+	t *testing.T,
+	initWtr func(wt io.WriterTo) gio.WriteToReadCloser,
+) {
 	req := require.New(t)
 	assr := assert.New(t)
 
@@ -29,9 +21,8 @@ func TestWriterToReader(t *testing.T) {
 	t.Run("Single read", func(t *testing.T) {
 		// Create an instance of ExampleWriterTo with some data.
 		ewt := &ExampleWriterTo{data: TestBin}
-
 		// Create a WriterToReader wrapping the ExampleWriterTo.
-		wtr := NewWriterToReader(ewt)
+		wtr := initWtr(ewt)
 
 		// Read data from the WriterToReader and compare it to the expected output.
 		buf := make([]byte, len(TestStr))
@@ -43,11 +34,9 @@ func TestWriterToReader(t *testing.T) {
 
 	// Tests the WriterToReader implementation with multiple reads.
 	t.Run("Multiple reads", func(t *testing.T) {
-		// Create an instance of ExampleWriterTo with some data.
 		ewt := &ExampleWriterTo{data: TestBin}
-
 		// Create a WriterToReader wrapping the ExampleWriterTo.
-		wtr := NewWriterToReader(ewt)
+		wtr := initWtr(ewt)
 
 		// Read data from the WriterToReader in chunks and compare it to the TestStr output.
 		var result bytes.Buffer
@@ -66,13 +55,11 @@ func TestWriterToReader(t *testing.T) {
 		assr.Equal(TestStr, result.String())
 	})
 
-	// Tests the WriterToReader implementation with an empty writer.
-	t.Run("Empty writer", func(t *testing.T) {
+	// Tests the WriterToReader implementation with an empty WriterTo.
+	t.Run("Empty WriterTo", func(t *testing.T) {
 		// Create an instance of ExampleWriterTo with no data.
 		ewt := &ExampleWriterTo{data: []byte{}}
-
-		// Create a WriterToReader wrapping the ExampleWriterTo.
-		wtr := NewWriterToReader(ewt)
+		wtr := initWtr(ewt)
 
 		// Read data from the WriterToReader and compare it to the expected output.
 		buf := make([]byte, 5)
@@ -83,4 +70,12 @@ func TestWriterToReader(t *testing.T) {
 		assr.Equal(io.EOF, err2)
 		assr.Equal(0, n2)
 	})
+}
+
+// TestWriterToReader tests the WriterToReader implementation.
+func TestWriterToReader(t *testing.T) {
+	testWriterToReader(
+		t,
+		func(wt io.WriterTo) gio.WriteToReadCloser { return gio.NewWriterToReader(wt) },
+	)
 }

@@ -1,48 +1,26 @@
-package io
+package io_test
 
 import (
 	"io"
 	"testing"
 
+	gio "github.com/daotl/guts/io"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-// ExampleReaderFrom is an example type that implements io.ReaderFrom.
-type ExampleReaderFrom struct {
-	data []byte
-}
-
-// ReadFrom reads data from the provided io.Reader.
-func (erf *ExampleReaderFrom) ReadFrom(r io.Reader) (int64, error) {
-	buf := make([]byte, 1024)
-	var totalBytes int64
-	for {
-		n, err := r.Read(buf)
-		if n > 0 {
-			erf.data = append(erf.data, buf[:n]...)
-			totalBytes += int64(n)
-		}
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			return totalBytes, err
-		}
-	}
-	return totalBytes, nil
-}
-
-// TestReaderFromWriter tests the ReaderFromWriter implementation.
-func TestReaderFromWriter(t *testing.T) {
+func testReaderFromWriter(
+	t *testing.T,
+	initRfw func(rf io.ReaderFrom) gio.ReadFromWriteCloser,
+) {
 	req := require.New(t)
 	assr := assert.New(t)
 
 	// Tests the ReaderFromWriter implementation with single write.
 	t.Run("Single write", func(t *testing.T) {
-		// Create an instance of ExampleReaderFrom.
+		// Create an instance of ExampleReaderFrom and an instance of ReaderFromWriter.
 		erf := &ExampleReaderFrom{}
-		rfw := NewReaderFromWriter(erf)
+		rfw := initRfw(erf)
 
 		// Write data to the ReaderFromWriter.
 		n, err := rfw.Write(TestBin)
@@ -58,9 +36,8 @@ func TestReaderFromWriter(t *testing.T) {
 
 	// Tests the ReaderFromWriter implementation with multiple writes.
 	t.Run("Multiple writes", func(t *testing.T) {
-		// Create an instance of ExampleReaderFrom.
 		erf := &ExampleReaderFrom{}
-		rfw := NewReaderFromWriter(erf)
+		rfw := initRfw(erf)
 
 		// Write data to the ReaderFromWriter in multiple chunks.
 		for _, chunk := range TestStrChunks {
@@ -76,11 +53,10 @@ func TestReaderFromWriter(t *testing.T) {
 		assr.Equal(TestStr, string(erf.data))
 	})
 
-	// // Tests the ReaderFromWriter implementation with an empty writer.
-	t.Run("", func(t *testing.T) {
-		// Create an instance of ExampleReaderFrom.
+	// Tests the ReaderFromWriter implementation with no write.
+	t.Run("No write", func(t *testing.T) {
 		erf := &ExampleReaderFrom{}
-		rfw := NewReaderFromWriter(erf)
+		rfw := initRfw(erf)
 
 		// Close the pipe writer to signal EOF without writing any data.
 		req.NoError(rfw.Close())
@@ -88,4 +64,12 @@ func TestReaderFromWriter(t *testing.T) {
 		// Check the data read by ExampleReaderFrom.
 		assr.Empty(erf.data)
 	})
+}
+
+// TestReaderFromWriter tests the ReaderFromWriter implementation.
+func TestReaderFromWriter(t *testing.T) {
+	testReaderFromWriter(
+		t,
+		func(rf io.ReaderFrom) gio.ReadFromWriteCloser { return gio.NewReaderFromWriter(rf) },
+	)
 }

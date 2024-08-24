@@ -4,12 +4,14 @@ import (
 	"io"
 )
 
-// WriterToReader is a type that wraps an io.WriterTo implementation and implements io.Reader using io.Pipe.
+// WriterToReader is a type that wraps an io.WriterTo implementation and implements WriterToReader using io.Pipe.
 type WriterToReader struct {
 	io.WriterTo
 	*io.PipeReader
 	pipeW *io.PipeWriter
 }
+
+var _ WriteToReadCloser = (*WriterToReader)(nil)
 
 // NewWriterToReader creates a new WriterToReader.
 func NewWriterToReader(writerTo io.WriterTo) *WriterToReader {

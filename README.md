@@ -14,15 +14,31 @@ Error-related utilities.
 
 ### [io](./io)
 
-### ReadeFromWriter
+### ReadFromWriter
 
-*ReaderFromWriter* is a type that wraps an `io.ReaderFrom` and implements `io.Writer` using `io.Pipe`.
+*ReadFromWriter* is the interface that groups the basic `ReadFrom` and `Write` methods.
+
+### ReadFromWriteCloser
+
+*ReadFromWriter* is the interface that groups the basic `ReadFrom`, `Write` and `Close` methods.
+
+### WriteToReader
+
+*WriteToReader* is the interface that groups the basic `WriteTo` and `Read` methods.
+
+### WriteToReadCloser
+
+*WriteToReader* is the interface that groups the basic `WriteTo`, `Read` and `Close` methods.
+
+### ReaderFromWriter
+
+*ReaderFromWriter* is a type that wraps an `io.ReaderFrom` and implements `ReadFromWriteCloser` using `io.Pipe`.
 Due to the asynchronous nature of `io.Pipe`, `Write()` will only be guaranteed to be visible after
 a call to `Sync()` or `Close()`.
 
 ### WriterToReader
 
-*WriterToReader* is a type that wraps an `io.WriterTo` implementation and implements `io.Reader` using `io.Pipe`.
+*WriterToReader* is a type that wraps an `io.WriterTo` implementation and implements `WriteToReadCloser` using `io.Pipe`.
 
 ### [net](./net/net.go)
 

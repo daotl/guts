@@ -5,9 +5,9 @@ import (
 	"sync"
 )
 
-// ReaderFromWriter is a type that wraps an io.ReaderFrom and implements io.Writer using io.Pipe.
-// Due to the asynchronous nature of io.Pipe, Write() will only be guaranteed to be visible after
-// a call to Sync() or Close().
+// ReaderFromWriter is a type that wraps an io.ReaderFrom and implements ReaderFromWriter using io.Pipe.
+// Due to the asynchronous nature of io.Pipe, Write() will only be guaranteed to be visible after a call
+// to Sync() or Close().
 type ReaderFromWriter struct {
 	io.ReaderFrom
 	*io.PipeWriter
@@ -15,6 +15,8 @@ type ReaderFromWriter struct {
 	pipeR *io.PipeReader
 	wg    sync.WaitGroup
 }
+
+var _ ReadFromWriteCloser = (*ReaderFromWriter)(nil)
 
 // NewReaderFromWriter creates a new ReaderFromWriter.
 func NewReaderFromWriter(readerFrom io.ReaderFrom) *ReaderFromWriter {
